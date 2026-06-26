@@ -1,5 +1,5 @@
 import { MarkdownRenderer } from '@/components/mdx/MarkdownRenderer/MarkdownRenderer';
-import { BackButtonContainer as BackButton } from '@/components/ui/BackButton/BackButtonContainer';
+import { BackButton } from '@/components/ui/BackButton/BackButton';
 import { FormattedDate } from '@/components/ui/FormattedDate/FormattedDate';
 import { PageTitle } from '@/components/ui/PageTitle/PageTitle';
 import { TagLink, TagList } from '@/components/ui/Tag/Tag';
