@@ -1,0 +1,13 @@
+import { css } from '../../../../../styled-system/css';
+
+export const articleDateStyles = css({ textStyle: 'bodyS', color: 'text.muted', mb: '4' });
+
+export const articleTagsContainerStyles = css({ mt: '2' });
+
+export const backButtonContainerStyles = css({
+  mt: '12',
+  pt: '8',
+  borderTopWidth: 'thin',
+  borderTopStyle: 'solid',
+  borderColor: 'border.default',
+});
