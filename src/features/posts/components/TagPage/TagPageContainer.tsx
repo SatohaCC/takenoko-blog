@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation';
 
 import { getPostsByTag } from '@/features/posts/api/posts';
-import { getPageItems, getTotalPages } from '@/features/posts/utils/pagination';
+import { calcTotalPages, getPageItems } from '@/features/posts/utils/pagination';
 import { toPostSummaries } from '@/features/posts/utils/to-post-summary';
 import { matchesTagSlug } from '@/lib/tag-slug';
 
@@ -19,7 +19,7 @@ export const TagPageContainer = async ({ tag, currentPage = 1 }: TagPageContaine
     notFound();
   }
 
-  const totalPages = getTotalPages(allPosts.length);
+  const totalPages = calcTotalPages(allPosts.length);
   const paginatedPosts = getPageItems(allPosts, currentPage);
 
   const sanitizedPosts = toPostSummaries(paginatedPosts);

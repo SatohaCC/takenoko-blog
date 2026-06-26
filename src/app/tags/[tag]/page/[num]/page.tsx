@@ -4,6 +4,7 @@ import { notFound } from 'next/navigation';
 import { siteConfig } from '@/content/site';
 import { getPostsByTag } from '@/features/posts/api/posts';
 import { TagPageContainer as TagPage } from '@/features/posts/components/TagPage/TagPageContainer';
+import { parsePageParam } from '@/features/posts/utils/pagination';
 import { getAllTags } from '@/features/tags/api/tags';
 import { slugifyTag } from '@/lib/tag-slug';
 import { absoluteUrl } from '@/lib/url';
@@ -42,9 +43,9 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
 
 const TagPagePagination = async ({ params }: TagPageProps) => {
   const { tag, num } = await params;
-  const currentPage = parseInt(num, 10);
+  const currentPage = parsePageParam(num);
 
-  if (isNaN(currentPage) || currentPage < 1) {
+  if (currentPage === null) {
     notFound();
   }
 

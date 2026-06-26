@@ -2,7 +2,7 @@ import { cacheLife } from 'next/cache';
 
 import { getAllPosts } from '@/features/posts/api/posts';
 import type { Post } from '@/features/posts/types';
-import { getPageItems, getTotalPages } from '@/features/posts/utils/pagination';
+import { calcTotalPages, getPageItems } from '@/features/posts/utils/pagination';
 
 export const searchPosts = async (query: string): Promise<Post[]> => {
   'use cache';
@@ -32,7 +32,7 @@ export const getSearchTotalCount = async (query: string): Promise<number> => {
 export const getSearchTotalPages = async (query: string): Promise<number> => {
   const posts = await searchPosts(query);
   // 検索結果は最低でも1ページ（空でも「検索結果なし」を表示する）を保証する
-  return Math.max(1, getTotalPages(posts.length));
+  return Math.max(1, calcTotalPages(posts.length));
 };
 
 export const getPaginatedSearchPosts = async (query: string, page: number): Promise<Post[]> => {

@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { getTotalPages } from '@/features/posts/api/posts';
 import { PostListContainer as PostList } from '@/features/posts/components/PostList/PostListContainer';
+import { parsePageParam } from '@/features/posts/utils/pagination';
 import { absoluteUrl } from '@/lib/url';
 
 export const generateStaticParams = async () => {
@@ -26,10 +27,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 const Page = async ({ params }: PageProps) => {
   const { num } = await params;
-  const currentPage = parseInt(num, 10);
+  const currentPage = parsePageParam(num);
   const totalPages = await getTotalPages();
 
-  if (isNaN(currentPage) || currentPage < 1 || currentPage > totalPages) {
+  if (currentPage === null || currentPage > totalPages) {
     notFound();
   }
 
