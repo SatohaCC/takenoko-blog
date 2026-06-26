@@ -39,3 +39,21 @@ export const getPaginatedSearchPosts = async (query: string, page: number): Prom
   const posts = await searchPosts(query);
   return getPageItems(posts, page);
 };
+
+/**
+ * 検索結果ページへのルート相対URLを組み立てます。
+ * クエリが空、またはページが1の場合は対応するパラメータを省略します。
+ *
+ * @example buildSearchUrl('react', 2) // => '/search?q=react&page=2'
+ */
+export const buildSearchUrl = (query: string, page: number): string => {
+  const params = new URLSearchParams();
+  if (query) {
+    params.set('q', query);
+  }
+  if (page > 1) {
+    params.set('page', String(page));
+  }
+  const queryString = params.toString();
+  return `/search${queryString ? `?${queryString}` : ''}`;
+};

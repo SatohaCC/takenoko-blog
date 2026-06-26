@@ -1,4 +1,5 @@
 import {
+  buildSearchUrl,
   getPaginatedSearchPosts,
   getSearchTotalCount,
   getSearchTotalPages,
@@ -23,14 +24,6 @@ export const SearchContainer = async ({ searchParams }: SearchContainerProps) =>
 
   const sanitizedPosts = toPostSummaries(posts);
 
-  const getPageUrl = (p: number) => {
-    const params = new URLSearchParams();
-    if (query) params.set('q', query);
-    if (p > 1) params.set('page', String(p));
-    const qs = params.toString();
-    return `/search${qs ? `?${qs}` : ''}`;
-  };
-
   return (
     <PostListPresentational
       posts={sanitizedPosts}
@@ -39,7 +32,7 @@ export const SearchContainer = async ({ searchParams }: SearchContainerProps) =>
       currentPage={currentPage}
       title={query ? `"${query}" の検索結果` : '検索'}
       subtitle={query ? undefined : '検索キーワードを入力してください'}
-      getPageUrl={getPageUrl}
+      getPageUrl={(p) => buildSearchUrl(query, p)}
     />
   );
 };

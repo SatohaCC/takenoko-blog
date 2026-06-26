@@ -5,6 +5,7 @@ import { siteConfig } from '@/content/site';
 import { getPostBySlug, getSortedPostsData } from '@/features/posts/api/posts';
 import { PostContentContainer as PostContent } from '@/features/posts/components/PostContent/PostContentContainer';
 import type { Post } from '@/features/posts/types';
+import { absoluteUrl } from '@/lib/url';
 
 export const generateStaticParams = async () => {
   const posts = await getSortedPostsData();
@@ -25,7 +26,7 @@ export const generateMetadata = async ({ params }: PostProps): Promise<Metadata>
     notFound();
   }
 
-  const url = `${siteConfig.url}/posts/${slug}`;
+  const url = absoluteUrl(`/posts/${slug}`);
 
   return {
     title: post.frontmatter.title,

@@ -6,6 +6,7 @@ import { getPostsByTag } from '@/features/posts/api/posts';
 import { TagPageContainer as TagPage } from '@/features/posts/components/TagPage/TagPageContainer';
 import { getAllTags } from '@/features/tags/api/tags';
 import { slugifyTag } from '@/lib/tag-slug';
+import { absoluteUrl } from '@/lib/url';
 
 export const generateStaticParams = async () => {
   const tags = await getAllTags();
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: TagPageProps): Promise<Metada
   return {
     title: `#${tag} (ページ ${num})`,
     description: `「${tag}」タグの記事一覧 - ページ ${num}`,
-    alternates: { canonical: `${siteConfig.url}/tags/${tag}/page/${num}` },
+    alternates: { canonical: absoluteUrl(`/tags/${tag}/page/${num}`) },
   };
 }
 
