@@ -56,6 +56,9 @@ test-results/
 # Jujutsu
 .jj/
 
+# editor
+.vscode
+
 # Agents
 .agents/
 .claude
