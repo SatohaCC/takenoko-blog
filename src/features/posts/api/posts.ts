@@ -8,7 +8,7 @@ import { readMarkdownFile } from '@/lib/mdx-parser';
 import { isSameTagName, matchesTagSlug } from '@/lib/tag-slug';
 
 import type { Post } from '../types';
-import { getTotalPages as calcTotalPages, getPageItems } from '../utils/pagination';
+import { calcTotalPages, getPageItems } from '../utils/pagination';
 
 const postsDirectory = path.join(process.cwd(), 'src/content/posts');
 

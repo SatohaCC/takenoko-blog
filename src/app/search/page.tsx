@@ -2,9 +2,10 @@ import { Suspense } from 'react';
 
 import type { Metadata } from 'next';
 
-import { siteConfig } from '@/content/site';
+import { buildSearchUrl } from '@/features/posts/api/search';
 import { SearchContainer } from '@/features/posts/components/Search/SearchContainer';
 import { SearchSkeleton } from '@/features/posts/components/Search/SearchSkeleton';
+import { absoluteUrl } from '@/lib/url';
 
 type SearchPageProps = {
   searchParams: Promise<{ q?: string; page?: string }>;
@@ -17,17 +18,10 @@ export async function generateMetadata({ searchParams }: SearchPageProps): Promi
 
   const title = query ? `"${query}" の検索結果` : '検索';
 
-  // Canonical URL の構築
-  const params = new URLSearchParams();
-  if (query) params.set('q', query);
-  if (currentPage > 1) params.set('page', String(currentPage));
-  const queryString = params.toString();
-  const canonicalUrl = `${siteConfig.url}/search${queryString ? `?${queryString}` : ''}`;
-
   return {
     title,
     description: query ? `「${query}」に関する記事の検索結果` : '記事を検索できます',
-    alternates: { canonical: canonicalUrl },
+    alternates: { canonical: absoluteUrl(buildSearchUrl(query, currentPage)) },
   };
 }
 

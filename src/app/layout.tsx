@@ -7,6 +7,7 @@ import { SidebarContainer as Sidebar } from '@/components/layouts/Sidebar/Sideba
 import { SkipLink } from '@/components/ui/SkipLink/SkipLink';
 import { Providers } from '@/components/ui/providers/providers';
 import { siteConfig } from '@/content/site';
+import { absoluteUrl } from '@/lib/url';
 
 import './globals.css';
 import {
@@ -38,7 +39,7 @@ export const metadata: Metadata = {
   openGraph: {
     type: 'website',
     locale: siteConfig.locale,
-    url: siteConfig.url,
+    url: absoluteUrl(),
     siteName: siteConfig.title,
     title: siteConfig.title,
     description: siteConfig.description,
@@ -49,9 +50,9 @@ export const metadata: Metadata = {
     description: siteConfig.description,
   },
   alternates: {
-    canonical: siteConfig.url,
+    canonical: absoluteUrl(),
     types: {
-      'application/rss+xml': `${siteConfig.url}/feed.xml`,
+      'application/rss+xml': absoluteUrl('/feed.xml'),
     },
   },
 };

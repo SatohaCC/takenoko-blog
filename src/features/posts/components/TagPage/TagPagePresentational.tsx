@@ -1,8 +1,8 @@
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import { BackButton } from '@/components/ui/BackButton/BackButton';
 import { PostListPresentational as PostList } from '@/features/posts/components/PostList/PostListPresentational';
 import type { PostSummary } from '@/features/posts/types';
 
-import { backToHomeLinkStyles, tagPageContainerStyles } from './TagPagePresentational.styles';
+import { tagPageContainerStyles } from './TagPagePresentational.styles';
 
 type TagPagePresentationalProps = {
   posts: PostSummary[];
@@ -32,9 +32,7 @@ export const TagPagePresentational = ({
         baseUrl={`/tags/${tag}`}
       />
 
-      <AppLink href="/" className={backToHomeLinkStyles}>
-        ← すべての記事に戻る
-      </AppLink>
+      <BackButton href="/" label="すべての記事に戻る" />
     </div>
   );
 };
