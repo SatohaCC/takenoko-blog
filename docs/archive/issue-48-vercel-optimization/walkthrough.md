@@ -1,5 +1,8 @@
 # Walkthrough: Vercel Best Practices Optimization (Issue #48)
 
+> [!NOTE]
+> **アーカイブ文書（Issue #48 / 対応完了）**。実装前の設計仕様は [technical-specification.md](./technical-specification.md) を参照してください。
+
 Vercel のベストプラクティスに基づき、検索機能およびブログ一覧表示の最適化を完了しました。
 
 ## 実施した変更

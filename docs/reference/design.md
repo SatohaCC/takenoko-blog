@@ -54,9 +54,10 @@
 2. **Presentational (`*Presentational.tsx`)**:
    - Client Component (必要に応じて)。
    - UIの表示のみを担当。
-   - `*.styles.ts` で定義されたスタイルを適用。
-3. **Styles (`*.styles.ts`)**:
+   - co-located のスタイルファイルで定義されたスタイルを適用。
+3. **Styles**:
    - `css()` や `cva()` (Recipe) を使用したスタイル定義。
+   - 命名はコンポーネント種別で揃えています。フィーチャー側のコンポーネントは `*.styles.ts`（例: `PostListPresentational.styles.ts`）、`src/components/ui/` の共通プリミティブは `styles.ts` を使用します。
 
 ### インポート規則
 パフォーマンス最適化のため、バレルファイル（`index.ts`）は使用しません。コンポーネントをインポートする際は、常に実体ファイルを直接指定してください。
