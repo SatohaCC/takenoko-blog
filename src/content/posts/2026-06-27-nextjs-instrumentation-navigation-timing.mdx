@@ -1,0 +1,228 @@
+---
+title: 'Next.js の instrumentation で画面遷移の所要時間を計測してみた'
+date: '2026-06-27'
+excerpt: 'instrumentation-client.ts の onRouterTransitionStart でソフトナビゲーションの時間を測り、sendBeacon → Route Handler → サーバー側でパーセンタイル集計するところまでを実装した記録。ミドルウェアとの違いも整理する。'
+tags: ['Next.js', 'instrumentation', 'パフォーマンス計測', 'TypeScript', 'React']
+draft: true
+---
+
+# Next.js の instrumentation で画面遷移の所要時間を計測してみた
+
+App Router でブログを運用していると、「リンクをクリックしてから次のページが表示されるまで、実際どれくらいかかっているのか」が気になってくる。フルページロードなら `PerformanceNavigationTiming` で測れるが、App Router の**ソフトナビゲーション**（クライアント側でのページ間遷移）はそうはいかない。
+
+そこで Next.js の `instrumentation-client.ts` を使って遷移時間を計測し、最終的に `sendBeacon` でサーバーへ送って集計するところまでを実装してみた。この記事ではその過程と、途中で整理した「ミドルウェアとの違い」をまとめる。
+
+## 1. 何が問題だったのか
+
+測りたいのは「ソフトナビゲーションの所要時間」だ。これが意外と厄介だった。
+
+- ソフトナビゲーションは**サーバーへのフルリクエストとして現れない**。データ取得はあるが、遷移そのものはブラウザ側の出来事だ。
+- そのため `PerformanceObserver` の `navigation` エントリには**載らない**。あれはフルページロード用である。
+- Next.js には遷移の「開始」フックはあるが、「完了」フックが**存在しない**。
+
+つまり「開始をどこかで捕まえ、完了を別のどこかで検知し、その差分を取る」という二段構えが必要になる。
+
+## 2. instrumentation-client.ts で遷移開始を捕まえる
+
+Next.js には [`instrumentation-client.ts`](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client) というファイル規約がある。プロジェクトのルート（`src` を使う場合は `src` 直下）に置くと、**React のハイドレーション前**に実行されるクライアントサイドの計測コードになる。
+
+このファイルは `onRouterTransitionStart` という関数を export でき、ルーター遷移が始まるたびに呼ばれる。
+
+```ts
+// src/instrumentation-client.ts
+import { startNavigation } from '@/lib/nav-timing';
+
+export function onRouterTransitionStart(
+  url: string,
+  navigationType: 'push' | 'replace' | 'traverse',
+): void {
+  try {
+    startNavigation(url, navigationType);
+  } catch {
+    // 計測の失敗がアプリ本体に影響しないよう握りつぶす
+  }
+}
+```
+
+`navigationType` は `'push' | 'replace' | 'traverse'` の3種類で、それぞれ通常遷移・置き換え・履歴移動に対応する。
+
+> [!TIP]
+> 公式ドキュメントでも、instrumentation コードは `try-catch` で囲うことが推奨されている。計測の失敗がアプリ本体に波及しないようにするためだ。また hydration 前に走るので、重い処理を書くと警告が出る（16ms 超でログ）。あくまで軽量に保つ。
+
+ここでやっているのは「開始時刻の記録」だけ。完了の検知は別の場所で行う。
+
+## 3. 完了を検知する — useEffect で pathname の変化を拾う
+
+完了フックが無い以上、「遷移先がレンダーされた瞬間」を自前で検知するしかない。App Router では `usePathname` / `useSearchParams` が遷移完了後に更新されるので、その変化を `useEffect` で捕まえるのが定石だ。
+
+```tsx
+// src/components/ui/NavigationTimingLogger/NavigationTimingLogger.tsx
+'use client';
+
+import { useEffect } from 'react';
+
+import { usePathname, useSearchParams } from 'next/navigation';
+
+import { logNavigationComplete } from '@/lib/nav-timing';
+
+export function NavigationTimingLogger(): null {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    const query = searchParams.toString();
+    const url = query ? `${pathname}?${query}` : pathname;
+    logNavigationComplete(url);
+  }, [pathname, searchParams]);
+
+  return null;
+}
+```
+
+UI は描画しないので `null` を返す。これをルートレイアウトに置く。`useSearchParams` を使うため `<Suspense>` で囲う必要がある点に注意（Next.js 16 の Cache Components 環境では必須）。
+
+```tsx
+// src/app/layout.tsx（抜粋）
+<Suspense fallback={null}>
+  <NavigationTimingLogger />
+</Suspense>
+```
+
+開始（instrumentation-client）と完了（コンポーネント）は別エントリなので、計測状態は `globalThis` で共有する。差分を取れば所要時間が出る。
+
+```ts
+// src/lib/nav-timing.ts（抜粋）
+export function logNavigationComplete(destinationUrl: string): void {
+  const pending = globalThis.__pendingNavigation;
+  if (!pending) return;
+  globalThis.__pendingNavigation = undefined;
+
+  const duration = Math.round(performance.now() - pending.startTime);
+  // ここで duration が「遷移の所要時間（ミリ秒）」
+}
+```
+
+この時点で、開発中はコンソールに `[画面遷移] 画面遷移: 352ms → /` のように出せる。だが `console.log` は**そのブラウザに出して終わり**で、集計はできない。
+
+## 4. console.log から「集計」へ — sendBeacon で送る
+
+実際にデータとして集計するには、計測値をクライアントの外へ送る必要がある。送信には `navigator.sendBeacon` を使う。ページ離脱中でも送信が中断されにくく、メインスレッドをブロックしないからだ。
+
+```ts
+// src/lib/nav-timing.ts（抜粋）
+function reportNavigation(payload: { url: string; type: string; duration: number }): void {
+  if (Math.random() >= SAMPLE_RATE) return; // サンプリング
+
+  try {
+    const body = JSON.stringify(payload);
+    if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
+      // application/json で送るため Blob にラップする
+      const blob = new Blob([body], { type: 'application/json' });
+      navigator.sendBeacon('/api/metrics/navigation', blob);
+    } else {
+      // 非対応環境向けフォールバック
+      void fetch('/api/metrics/navigation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body,
+        keepalive: true,
+      });
+    }
+  } catch {
+    // 送信失敗はアプリ本体に影響させない
+  }
+}
+```
+
+トラフィックが多い本番では `SAMPLE_RATE`（サンプリング率）を下げて送信量を抑える。
+
+> [!NOTE]
+> コンソール出力は開発時だけにし、`sendBeacon` での送信は本番でも動かすのがポイント。集計が意味を持つのは実ユーザーのデータがあってこそだからだ。
+
+## 5. 受け口は Route Handler、集計はパーセンタイルで
+
+`sendBeacon` の送信先は URL なので、受け口は **Route Handler**（`route.ts`）になる。POST で受け取って集計ストアへ記録し、GET で集計結果を返す。
+
+```ts
+// src/app/api/metrics/navigation/route.ts（抜粋）
+import { getAllAggregates, recordSample } from '@/lib/metrics/navigation-store';
+
+export async function POST(request: Request): Promise<Response> {
+  const payload = await request.json();
+  // ...バリデーション...
+  recordSample(payload.url, payload.duration);
+  return new Response(null, { status: 204 });
+}
+
+export function GET(): Response {
+  return Response.json(getAllAggregates());
+}
+```
+
+集計で大事なのは、**平均ではなくパーセンタイルで見る**ことだ。レイテンシは外れ値ひとつで平均が簡単に歪む。p50（中央値＝普通の体験）と p95（遅い側のユーザーの体験）を分けて見るのが鉄則になる。
+
+```ts
+// src/lib/metrics/navigation-store.ts（抜粋）
+function percentile(sorted: number[], p: number): number {
+  if (sorted.length === 0) return 0;
+  const index = Math.min(sorted.length - 1, Math.floor((p / 100) * sorted.length));
+  return sorted[index];
+}
+```
+
+実際にブラウザで数回遷移させると、サーバー側ログに次のように出た。
+
+```text
+[メトリクス受信] /about 324ms | 件数:1 p50:324ms p95:324ms
+[メトリクス受信] /       78ms | 件数:1 p50:78ms  p95:78ms
+[メトリクス受信] /about  77ms | 件数:2 p50:324ms p95:324ms   ← 件数が増えて集計更新
+```
+
+`GET /api/metrics/navigation` を叩けば、集計済みの JSON がそのまま返る。
+
+```json
+[
+  { "url": "/about", "count": 2, "p50": 324, "p95": 324, "max": 324 },
+  { "url": "/", "count": 1, "p50": 78, "p95": 78, "max": 78 }
+]
+```
+
+> [!WARNING]
+> 今回の集計ストアはプロセスメモリに貯めるだけの学習用実装だ。サーバー再起動で消えるし、複数インスタンスやサーバーレスでは共有されない。本番では生データを DB（ClickHouse / BigQuery など）や監視サービスへ送り、クエリ側でパーセンタイルを計算する。
+
+なお「受け口（Route Handler）」自体はホスティング非依存で、Next.js がサーバーとして動く環境ならどこへデプロイしても同じコードで動く。環境ごとに用意が要るのは保存先だけだ（ただし完全な静的書き出しでは Route Handler は動かない）。
+
+## 6. ミドルウェアとの違い
+
+実装中に「これ、ミドルウェアでやるのとどう違うんだ？」と引っかかったので整理しておく。結論から言うと、**観測できるものが根本的に違う**。
+
+| 仕組み | 実行場所 | タイミング | 役割 |
+| --- | --- | --- | --- |
+| `middleware.ts` | サーバー（既定で Edge） | リクエストごと・ルーティング前 | リクエスト/レスポンスの横断的加工 |
+| `route.ts` | サーバー | その URL が叩かれた時 | 特定エンドポイントの処理（API） |
+| `instrumentation.ts` の `register()` | サーバー | 起動時に1回 | 監視ツールの初期化 |
+| `instrumentation-client.ts` | ブラウザ | hydration前＋遷移時 | クライアント計測 |
+
+ミドルウェアは「リクエストが目的地に届く前に割り込む関所」で、認証・リダイレクト・`rewrite`・ヘッダ付与といった**リクエストの横断的な加工**が役割だ。
+
+一方、今回測ったのは**クライアントのソフトナビゲーション時間**である。ソフト遷移はサーバーへのフルリクエストとして現れないので、サーバーで走るミドルウェアからは**そもそも観測できない**。ミドルウェアで取れるのは、サーバーへ届いた実リクエスト（フルロードや API 呼び出し）のアクセスログ・サーバー応答レイテンシであって、ユーザー体感の遷移時間とは観点が別だ。
+
+一言でいうと、**ミドルウェア＝通り道の関所（横断・制御）**、**Route Handler＝目的地（API）**、**instrumentation＝計測の仕込み**。役割が住み分けられている。
+
+> [!CAUTION]
+> ミドルウェアは既定で Edge ランタイム・全リクエストで毎回実行される。重い集計処理や Node 専用の DB ドライバを置く場所には向かない。あくまで軽い関所処理に留めること。
+
+## まとめ
+
+- App Router のソフトナビゲーション時間は `PerformanceObserver` では測れない。`instrumentation-client.ts` の `onRouterTransitionStart` で**開始**を、`useEffect` での `pathname` 変化で**完了**を捕まえて差分を取る。
+- 計測値は `console.log` で終わらせず、`navigator.sendBeacon` でサーバーへ送って初めて「集計」できる。受け口は Route Handler。
+- 集計は**平均ではなくパーセンタイル（p50 / p95）**で見る。レイテンシは外れ値に弱いからだ。
+- ミドルウェアとは観測対象が違う。クライアント体感の遷移時間はミドルウェアでは測れない。
+- メモリ集計はあくまで学習用。本番は DB や監視サービス（Vercel Speed Insights、Sentry、OpenTelemetry など）に任せるのが現実的。
+
+「遷移がなんとなく遅い気がする」を数字にしたい人の参考になればうれしい。
+
+## 参考
+
+- [instrumentation-client.js — Next.js Docs](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)
+- [How to set up instrumentation — Next.js Docs](https://nextjs.org/docs/app/guides/instrumentation)
