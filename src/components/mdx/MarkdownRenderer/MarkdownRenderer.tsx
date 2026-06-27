@@ -7,13 +7,13 @@ import remarkGfm from 'remark-gfm';
 
 import { MarkdownBlockquote } from '@/components/mdx/MarkdownBlockquote/MarkdownBlockquote';
 import { MarkdownImage } from '@/components/mdx/MarkdownImage/MarkdownImage';
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import { MarkdownLink } from '@/components/mdx/MarkdownLink/MarkdownLink';
 import rehypeImageSize from '@/lib/rehype-image-size';
 
 import { markdownContentStyles } from './MarkdownRenderer.styles';
 
 const defaultComponents = {
-  a: AppLink,
+  a: MarkdownLink,
   blockquote: MarkdownBlockquote,
   img: MarkdownImage,
 };

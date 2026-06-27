@@ -1,6 +1,7 @@
 import { Suspense } from 'react';
 
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
 import { CopyrightYear } from '@/components/ui/CopyrightYear/CopyrightYear';
 import { siteConfig } from '@/content/site';
 
@@ -16,12 +17,12 @@ export const FooterPresentational = () => {
     <footer className={footerContainerStyles}>
       <div className={footerInnerStyles}>
         <nav className={footerNavStyles} aria-label="フッターナビゲーション">
-          <AppLink href="/" className={footerLinkStyles}>
+          <Link href="/" className={footerLinkStyles}>
             ホーム
-          </AppLink>
-          <AppLink href={siteConfig.links.about} className={footerLinkStyles}>
+          </Link>
+          <Link href={siteConfig.links.about} className={footerLinkStyles}>
             About
-          </AppLink>
+          </Link>
         </nav>
         <small>
           &copy;{' '}

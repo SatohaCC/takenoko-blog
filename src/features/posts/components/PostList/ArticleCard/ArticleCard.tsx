@@ -1,6 +1,7 @@
 import React from 'react';
 
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
 import { FormattedDate } from '@/components/ui/FormattedDate/FormattedDate';
 import type { PostSummary } from '@/features/posts/types';
 
@@ -33,9 +34,9 @@ export const ArticleCard = ({ post }: ArticleCardProps) => {
             } as React.CSSProperties & { viewTransitionName?: string }
           }
         >
-          <AppLink href={`/posts/${post.slug}`} className={titleLinkStyles}>
+          <Link href={`/posts/${post.slug}`} className={titleLinkStyles}>
             {post.frontmatter.title}
-          </AppLink>
+          </Link>
         </h2>
         <FormattedDate date={post.frontmatter.date} className={dateStyles} />
         <p className={excerptStyles}>{post.frontmatter.excerpt}</p>

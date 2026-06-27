@@ -1,4 +1,5 @@
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
 import { Button } from '@/components/ui/Button/Button';
 
 import {
@@ -39,9 +40,9 @@ export const StatusPage = ({ status, title, description, onReset }: StatusPagePr
           再試行する
         </Button>
       )}
-      <AppLink href="/" className={statusPageLinkStyles}>
+      <Link href="/" className={statusPageLinkStyles}>
         トップページへ戻る
-      </AppLink>
+      </Link>
     </div>
   </div>
 );
