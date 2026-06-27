@@ -1,0 +1,98 @@
+---
+title: 'Next.js の instrumentation-client とは？役割と活用例を調べてみた'
+date: '2026-06-27'
+excerpt: 'Next.js のクライアント計測用ファイル規約 instrumentation-client.ts の仕様や役割を調べました。ポリフィルの読み込みやソフトナビゲーション計測などの活用方法を解説します。'
+tags: ['Next.js', 'instrumentation', 'ポリフィル', 'パフォーマンス計測', 'TypeScript']
+draft: true
+---
+
+# Next.js の instrumentation-client とは？役割と活用例を調べてみた
+
+Next.js のドキュメントを読んでいると、クライアント側でポリフィル（Polyfill）を読み込む手段として [`instrumentation-client.js|ts`](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client) というファイル規約があるのを見つけました。
+
+「これは一体どんな機能で、どういった場面で使われるのか？」と気になったので、その役割や実行タイミング、さらに応用として画面遷移（ソフトナビゲーション）の計測に活用する方法までを調べてまとめました。
+
+## instrumentation-client.ts とは？
+
+`instrumentation-client.ts` は、Next.js 15.3.0 で正式に導入されたクライアントサイド向けのファイル規約です。
+
+プロジェクトのルート（`src` ディレクトリを使用している場合は `src/instrumentation-client.ts`）に配置することで、**React のハイドレーションが始まる前（かつブラウザがインタラクティブになる前）** に任意のコードを実行させることができます。
+
+この「ハイドレーション前」という極めて早いタイミングで実行される特性を活かし、主に以下の用途で使用されます。
+
+### 1. カスタムポリフィル（Polyfill）の読み込み
+
+ブラウザの互換性対策として、不足している API のポリフィルを読み込むのに最適です。React のハイドレーションが始まってコンポーネントが実行される前にポリフィルが確実に適用されるため、ハイドレーションエラーや未定義エラーを防ぐことができます。
+
+```ts
+// src/instrumentation-client.ts
+// 例：ResizeObserver がない環境向けにポリフィルを読み込む
+if (typeof window !== 'undefined' && !window.ResizeObserver) {
+  import('resize-observer-polyfill').then((module) => {
+    window.ResizeObserver = module.default;
+  });
+}
+```
+
+### 2. 監視ツールやアナリティクスの初期化（クライアント側）
+
+Sentry や Datadog などのエラー監視・パフォーマンス監視ツールは、サーバー側と**クライアント側**で別々に初期化コードを用意することが多いです。`instrumentation-client.ts` はそのうち**クライアント側の初期化**を担当します。アプリ本体が操作可能になるよりも前に初期化されるため、ハイドレーション中に発生したエラーも漏らさずキャッチできます。
+
+> [!NOTE]
+> サーバー・Edge 側の初期化は役割が異なり、`instrumentation.ts` の `register()` が担当します。実際、Sentry の Next.js SDK も「クライアント用の設定は `instrumentation-client.ts`」「サーバー/Edge 用の設定は `instrumentation.ts` 経由」と明確に役割を分けています。
+
+### 3. ルーター遷移イベントの監視
+
+`onRouterTransitionStart` という専用の関数を export することで、クライアントサイドでのページ遷移（ソフトナビゲーション）の開始を検知できます。この仕組みを使って、パフォーマンス計測を行うことも可能です。
+
+この3つ目の「ルーター遷移イベントの監視」が面白そうだったので、実際に手を動かして活用例を試してみました。
+
+## 活用例：ソフトナビゲーションの開始を計測してみる
+
+`onRouterTransitionStart` を実際に使って、ルーター遷移の開始タイミングを覗いてみます。
+
+ここで言う「ソフトナビゲーション（soft navigation）」とは、App Router で `<Link>` をクリックしたときのような、ページ全体を読み込み直さずに JavaScript が必要な部分だけを差し替える遷移のことです。[Chrome for Developers の解説](https://developer.chrome.com/docs/web-platform/soft-navigations)で定義されている用語で、Next.js のドキュメントでは「クライアントサイドナビゲーション」と呼ばれることもあります。
+
+通常のフルページロードと違ってサーバーへのリクエストを伴わないため、ブラウザ標準の `PerformanceObserver`（ページの読み込み時間などを受け取る API）の `navigation` エントリには記録されません。そこで `onRouterTransitionStart` を使うと、この「記録に残らない遷移」の開始を自分で検知できます。
+
+```ts
+// src/instrumentation-client.ts
+export function onRouterTransitionStart(
+  url: string,
+  navigationType: 'push' | 'replace' | 'traverse'
+): void {
+  try {
+    console.log(`[画面遷移開始] ${url} (${navigationType})`, performance.now());
+  } catch {
+    // 計測の失敗がアプリ本体に影響しないよう握りつぶす
+  }
+}
+```
+
+第2引数の `navigationType` は `'push' | 'replace' | 'traverse'` の3種類で、それぞれ通常遷移・置き換え・履歴移動に対応します。試しにアプリ内のリンクをいくつかクリックすると、コンソールに次のように出力されます。
+
+```text
+[画面遷移開始] /about (push) 1234.5
+[画面遷移開始] / (traverse) 2310.8
+```
+
+> [!TIP]
+> 公式ドキュメントでも、instrumentation のコードは `try-catch` で囲うことが推奨されています。計測の失敗がアプリ本体に波及しないようにするためです。また、ハイドレーション前に実行されるので重い処理は禁物です（16ms を超えるとブラウザに警告が出ます）。
+
+これで「開始」は捕まえられました。実際に遷移の所要時間まで計測するには、完了タイミングを `useEffect` で検知して差分を取り、計測値をサーバーへ送って集計する処理が必要になりますが、そこは別の記事で実装してみようと思います。
+
+## まとめ
+
+調べてみてわかったことを整理します。
+
+- `instrumentation-client.ts` は Next.js 15.3.0 で導入されたクライアント計測用のファイル規約で、**ハイドレーション前**に実行される。
+- 主な用途はポリフィルの読み込み・監視ツールのクライアント側初期化・ルーター遷移イベントの監視の3つ。
+- `onRouterTransitionStart` を export すると、`PerformanceObserver` では捕まえられないソフトナビゲーションの開始タイミングを検知できる。
+
+ポリフィルの読み込み口として見つけた機能でしたが、調べてみると「ハイドレーション前に走るクライアント計測の入口」として幅広く使えることがわかりました。同じように `instrumentation-client.ts` が気になっている人の参考になればうれしいです。
+
+## 参考
+
+- [instrumentation-client.js — Next.js Docs](https://nextjs.org/docs/app/api-reference/file-conventions/instrumentation-client)
+- [How to set up instrumentation — Next.js Docs](https://nextjs.org/docs/app/guides/instrumentation)
+- [Measuring soft navigations — Chrome for Developers](https://developer.chrome.com/docs/web-platform/soft-navigations)

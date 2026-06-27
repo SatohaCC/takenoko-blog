@@ -1,9 +1,12 @@
+import { Suspense } from 'react';
+
 import type { Metadata } from 'next';
 import { Geist, Geist_Mono } from 'next/font/google';
 
 import { FooterPresentational as Footer } from '@/components/layouts/Footer/FooterPresentational';
 import { HeaderPresentational as Header } from '@/components/layouts/Header/HeaderPresentational';
 import { SidebarContainer as Sidebar } from '@/components/layouts/Sidebar/SidebarContainer';
+import { NavigationTimingLogger } from '@/components/ui/NavigationTimingLogger/NavigationTimingLogger';
 import { SkipLink } from '@/components/ui/SkipLink/SkipLink';
 import { Providers } from '@/components/ui/providers/providers';
 import { siteConfig } from '@/content/site';
@@ -66,6 +69,9 @@ const RootLayout = ({ children }: RootLayoutProps) => {
     <html lang="ja" data-scroll-behavior="smooth" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} ${bodyStyles}`}>
         <Providers>
+          <Suspense fallback={null}>
+            <NavigationTimingLogger />
+          </Suspense>
           <SkipLink />
           <div className={pageWrapperStyles}>
             <Header />

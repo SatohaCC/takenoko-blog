@@ -187,6 +187,18 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // instrumentation / 計測系ファイルは観測ログ出力が責務のため console.log を許可する。
+  {
+    files: [
+      'src/instrumentation.ts',
+      'src/instrumentation-client.ts',
+      'src/lib/nav-timing.ts',
+      'src/app/api/metrics/**/*.ts',
+    ],
+    rules: {
+      'no-console': 'off',
+    },
+  },
   ...storybook.configs['flat/recommended'],
   prettierConfig,
 ]);
