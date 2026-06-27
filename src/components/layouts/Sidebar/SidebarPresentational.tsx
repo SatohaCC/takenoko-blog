@@ -1,4 +1,5 @@
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
 import { FormattedDate } from '@/components/ui/FormattedDate/FormattedDate';
 import { TagLink, TagList } from '@/components/ui/Tag/Tag';
 import type { Post } from '@/features/posts/types';
@@ -30,9 +31,9 @@ export const SidebarPresentational = ({ allTags, latestPosts }: SidebarPresentat
         <ul className={postListStyles}>
           {latestPosts.map((post) => (
             <li key={post.slug} className={postItemStyles}>
-              <AppLink href={`/posts/${post.slug}`} className={postLinkStyles}>
+              <Link href={`/posts/${post.slug}`} className={postLinkStyles}>
                 {post.frontmatter.title}
-              </AppLink>
+              </Link>
               <FormattedDate date={post.frontmatter.date} className={postDateStyles} />
             </li>
           ))}

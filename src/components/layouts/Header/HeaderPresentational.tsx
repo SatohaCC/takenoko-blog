@@ -1,6 +1,8 @@
 import React from 'react';
 
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
+import { ExternalLink } from '@/components/ui/ExternalLink/ExternalLink';
 import { GithubIcon } from '@/components/ui/GithubIcon/GithubIcon';
 import { ThemeToggleContainer as ThemeToggle } from '@/components/ui/ThemeToggle/ThemeToggleContainer';
 import { siteConfig } from '@/content/site';
@@ -22,18 +24,22 @@ export const HeaderPresentational = () => {
       style={{ viewTransitionName: 'page-header' } as React.CSSProperties}
     >
       <div className={headerInnerStyles}>
-        <AppLink href="/" className={logoStyles}>
+        <Link href="/" className={logoStyles}>
           {siteConfig.title}
-        </AppLink>
+        </Link>
 
         <nav className={navContainerStyles} aria-label="グローバルナビゲーション">
           <SearchBox />
-          <AppLink href={siteConfig.links.about} className={navLinkStyles}>
+          <Link href={siteConfig.links.about} className={navLinkStyles}>
             About
-          </AppLink>
-          <AppLink href={siteConfig.links.github} className={iconButtonStyles} aria-label="GitHub">
+          </Link>
+          <ExternalLink
+            href={siteConfig.links.github}
+            className={iconButtonStyles}
+            aria-label="GitHub"
+          >
             <GithubIcon />
-          </AppLink>
+          </ExternalLink>
           <ThemeToggle />
         </nav>
       </div>

@@ -1,17 +1,17 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 import { expect } from 'storybook/test';
 
-import { AppLink } from './AppLink';
+import { MarkdownLink } from './MarkdownLink';
 
 const meta = {
-  title: 'UI/AppLink',
-  component: AppLink,
+  title: 'MDX/MarkdownLink',
+  component: MarkdownLink,
   parameters: {
     layout: 'centered',
     a11y: { test: 'error' },
   },
   tags: ['autodocs'],
-} satisfies Meta<typeof AppLink>;
+} satisfies Meta<typeof MarkdownLink>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
@@ -94,33 +94,6 @@ export const ExternalLink: Story = {
         await expect(link).toHaveAttribute('target', '_blank');
         await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
         await expect(link).toHaveAttribute('href', 'https://example.com');
-      }
-    );
-  },
-};
-
-/**
- * `rel` prop を渡してもセキュリティ用の `rel="noopener noreferrer"` は上書きされないことを検証する。
- *
- * @summary 外部リンクのセキュリティ属性が保護されていることの確認
- */
-export const ExternalRelIsNotOverridden: Story = {
-  args: {
-    href: 'https://example.com',
-    children: 'relを上書きしようとするリンク',
-    rel: 'me',
-  },
-  play: async ({ canvas, step }) => {
-    let link: HTMLElement;
-
-    await step('Arrange: リンクを取得', async () => {
-      link = canvas.getByRole('link', { name: 'relを上書きしようとするリンク' });
-    });
-
-    await step(
-      'Assert: rel プロパティを指定しても、セキュリティ用の rel="noopener noreferrer" が優先されていることを確認',
-      async () => {
-        await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
       }
     );
   },

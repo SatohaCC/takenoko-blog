@@ -18,7 +18,7 @@ export interface ButtonProps extends AriaButtonProps {
 
 /**
  * インタラクション用の汎用ボタンコンポーネント。
- * ページ遷移には使用せず、ナビゲーションには AppLink を使用してください。
+ * ページ遷移には使用せず、ナビゲーションには next/link の Link / ExternalLink を使用してください。
  *
  * @summary ページ遷移を伴わないユーザー操作に使用する
  */

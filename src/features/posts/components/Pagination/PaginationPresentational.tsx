@@ -1,6 +1,7 @@
-import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
+import type { Route } from 'next';
+import Link from 'next/link';
 
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import { ChevronLeft, ChevronRight, MoreHorizontal } from 'lucide-react';
 
 import {
   disabledStyles,
@@ -27,15 +28,16 @@ export const PaginationPresentational = ({
 }: PaginationPresentationalProps) => {
   return (
     <nav aria-label="ページネーション" className={paginationNavStyles}>
+      {/* getPageUrl は動的に組み立てた string を返すため、リテラル型推論が効かず Route へのキャストが必要 */}
       {/* Previous Button */}
       {currentPage > 1 ? (
-        <AppLink
-          href={getPageUrl(currentPage - 1)}
+        <Link
+          href={getPageUrl(currentPage - 1) as Route}
           className={paginationLinkStyles}
           aria-label="前のページ"
         >
           <ChevronLeft size={20} />
-        </AppLink>
+        </Link>
       ) : (
         <a
           className={disabledStyles}
@@ -55,15 +57,15 @@ export const PaginationPresentational = ({
               <MoreHorizontal size={16} aria-hidden="true" />
             </span>
           ) : (
-            <AppLink
+            <Link
               key={page}
-              href={getPageUrl(page)}
+              href={getPageUrl(page) as Route}
               className={pageNumberRecipe({ active: currentPage === page })}
               aria-current={currentPage === page ? 'page' : undefined}
               aria-label={`ページ ${page}`}
             >
               {page}
-            </AppLink>
+            </Link>
           )
         )}
       </div>
@@ -75,13 +77,13 @@ export const PaginationPresentational = ({
 
       {/* Next Button */}
       {currentPage < totalPages ? (
-        <AppLink
-          href={getPageUrl(currentPage + 1)}
+        <Link
+          href={getPageUrl(currentPage + 1) as Route}
           className={paginationLinkStyles}
           aria-label="次のページ"
         >
           <ChevronRight size={20} />
-        </AppLink>
+        </Link>
       ) : (
         <a
           className={disabledStyles}

@@ -33,7 +33,7 @@ export const Default: Story = {};
  */
 export const CustomPath: Story = {
   args: {
-    href: '/custom-path',
+    href: '/about',
     label: 'すべての記事に戻る',
   },
   play: async ({ canvas, step }) => {
@@ -44,7 +44,7 @@ export const CustomPath: Story = {
     });
 
     await step('Assert: リンク先が正しく設定されていることを確認', async () => {
-      await expect(link).toHaveAttribute('href', '/custom-path');
+      await expect(link).toHaveAttribute('href', '/about');
     });
   },
 };

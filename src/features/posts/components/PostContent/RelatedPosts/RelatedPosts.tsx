@@ -1,4 +1,5 @@
-import { AppLink } from '@/components/ui/AppLink/AppLink';
+import Link from 'next/link';
+
 import type { PostSummary } from '@/features/posts/types';
 
 import {
@@ -24,10 +25,10 @@ export const RelatedPosts = ({ posts }: RelatedPostsProps) => {
       <h2 className={relatedPostsHeadingStyles}>関連記事</h2>
       <div className={relatedPostsGridStyles}>
         {posts.map((post) => (
-          <AppLink key={post.slug} href={`/posts/${post.slug}`} className={relatedPostCardStyles}>
+          <Link key={post.slug} href={`/posts/${post.slug}`} className={relatedPostCardStyles}>
             <h3 className={relatedPostTitleStyles}>{post.frontmatter.title}</h3>
             <span className={relatedPostDateStyles}>{post.frontmatter.date}</span>
-          </AppLink>
+          </Link>
         ))}
       </div>
     </aside>

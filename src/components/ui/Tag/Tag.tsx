@@ -1,8 +1,9 @@
 import { type ReactNode } from 'react';
 
+import Link from 'next/link';
+
 import { slugifyTag } from '@/lib/tag-slug';
 
-import { AppLink } from '../AppLink/AppLink';
 import { tagListStyles, tagRecipe } from './styles';
 
 type TagLinkProps = {
@@ -15,7 +16,7 @@ type TagLinkProps = {
 /**
  * 記事一覧や検索結果などで使用する、リンク機能を持つタグコンポーネント。
  * 受け取ったタグ名（tag）から自動的に URL スラグ（/tags/xxx）を生成します。
- * 内部で `AppLink` を使用しており、高速なクライアントサイドナビゲーションが可能です。
+ * 内部で Next.js の `Link` を使用しており、高速なクライアントサイドナビゲーションが可能です。
  *
  * @summary 特定のタグに関連する記事一覧へのリンクを持つタグ
  */
@@ -24,9 +25,9 @@ export const TagLink = ({ tag, children }: TagLinkProps) => {
   const tagSlug = slugifyTag(tag);
 
   return (
-    <AppLink href={`/tags/${tagSlug}`} className={tagRecipe()}>
+    <Link href={`/tags/${tagSlug}`} className={tagRecipe()}>
       {children || tag}
-    </AppLink>
+    </Link>
   );
 };
 

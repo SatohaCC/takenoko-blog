@@ -30,6 +30,24 @@ export default defineConfig({
     smDown: '@media (max-width: 639px)',
   },
 
+  globalCss: {
+    a: {
+      textDecoration: 'none',
+      color: 'inherit',
+      outline: 'none',
+      transitionProperty: 'color',
+      transitionDuration: 'normal',
+      _hover: {
+        color: 'accent.default',
+      },
+      _focusVisible: {
+        outline: '2px solid',
+        outlineColor: 'accent.focusRing',
+        outlineOffset: '2px',
+      },
+    },
+  },
+
   theme: {
     keyframes: {
       shimmer: {
@@ -453,7 +471,7 @@ export default defineConfig({
       button: {
         className: 'button',
         description: 'The styles for the Button component',
-        jsx: ['Button', 'AppLink'],
+        jsx: ['Button'],
         base: {
           display: 'inline-flex',
           alignItems: 'center',
